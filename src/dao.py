@@ -1,10 +1,10 @@
-from models import *
+from models import Airports
 from sqlalchemy.orm import sessionmaker, load_only
 from sqlalchemy import create_engine
-from config import logindb, passdb, dbhost, dbname
+# from config import logindb, passdb, dbhost, dbname
 
 engine = create_engine(
-    f'postgresql://{logindb}:{passdb}@{dbhost}/{dbname}',
+    'postgresql://{logindb}:{passdb}@{dbhost}/{dbname}',
     echo=True)
 
 Session = sessionmaker(bind=engine)
@@ -12,7 +12,7 @@ Session.configure(bind=engine)
 
 session = Session()
 
-def add_airport_to_db(iata_code, city_name):
+def add_airport_to_database(iata_code, city_name):
     session.add(Airports(iata_code=iata_code,city_name=iata_code))
     session.commit()
 

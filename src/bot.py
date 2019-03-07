@@ -9,8 +9,10 @@ from functools import wraps
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, RegexHandler
 from telegram.ext.dispatcher import run_async
 
+from constants import LIST_OF_ADMINS
 from skyscanner import SkyScannerInterface
 from logger import logger
+from dao import add_airport_to_database
 
 
 CHOOSING, AIRPORT_PROCESSING, LINK_PROCESSING, DONE = range(4)
@@ -81,6 +83,8 @@ def add_airport_to_db(bot, update):
         logger.error(msg="User {} send data with wrong format ".format(update.effective_user.id))
         update.message.reply_text("Please, send IATA code and city name in right format")
         return AIRPORT_PROCESSING
+    iata_code, city_name = text.split(':')
+    add_airport_to_database(iata_code, city_name)
     update.message.reply_text(
         "Done!\n\n Please, start sending links. Send *end* or *done* when you're ready to get output.",
         parse_mode=telegram.ParseMode.MARKDOWN)
