@@ -12,7 +12,7 @@ from telegram.ext.dispatcher import run_async
 from constants import LIST_OF_ADMINS
 from skyscanner import SkyScannerInterface
 from logger import logger
-from dao import add_airport_to_database
+from dao import add_airport_to_database, get_airport_by_iata_code
 
 
 CHOOSING, AIRPORT_PROCESSING, LINK_PROCESSING, DONE = range(4)
@@ -84,11 +84,16 @@ def add_airport_to_db(bot, update):
         update.message.reply_text("Please, send IATA code and city name in right format")
         return AIRPORT_PROCESSING
     iata_code, city_name = text.split(':')
-    add_airport_to_database(iata_code, city_name)
+    created = add_airport_to_database(iata_code, city_name)
+    if created:
+        text_to_replay = "Done\n\n "
+        logger.info(msg="User {} added new airport to DB.".format(update.effective_user.id))
+    else:
+        text_to_replay = "Airport was already in DB!\n\n "
+        logger.error('Airport {} is already exists in DB!'.format(iata_code))
     update.message.reply_text(
-        "Done!\n\n Please, start sending links. Send *end* or *done* when you're ready to get output.",
+        text_to_replay + "Please, start sending links. Send *end* or *done* when you're ready to get output.",
         parse_mode=telegram.ParseMode.MARKDOWN)
-    logger.info(msg="User {} added new airport to DB.".format(update.effective_user.id))
     return LINK_PROCESSING
 
 
