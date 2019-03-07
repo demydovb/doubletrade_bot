@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import itertools
+
+LIST_OF_ADMINS = [449915551, 488295339]
+
 CITY_MAPPING = {
     'kiev': 'Київ',
     'cfu': 'Корфу',
@@ -69,3 +73,12 @@ MONTH_MAPPING_INFINITIVE = {
     '12': 'грудень',
 }
 
+DELIMITER = '/'
+
+SOURCES = {
+    'SITE': "https://clk.tradedoubler.com/click?p=232108&a=2937217&g=21113908&url=http://",
+    'TG': "https://clk.tradedoubler.com/click?p=232108&a=3068494&g=21113908&url=http://",
+    'FB': "https://clk.tradedoubler.com/click?p=232108&a=3068495&g=21113908&url=http://",
+}
+
+EMODJI = itertools.cycle('🔸🔹')

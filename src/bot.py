@@ -1,32 +1,21 @@
 import os
 import asyncio
-import logging
 import telegram
 import re
 import itertools
 
+from dotenv import load_dotenv, find_dotenv
 from functools import wraps
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, RegexHandler
 from telegram.ext.dispatcher import run_async
 
 from skyscanner import SkyScannerInterface
+from logger import logger
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
 
-logger = logging.getLogger(__name__)
-
-LIST_OF_ADMINS = [449915551, 488295339]
 CHOOSING, AIRPORT_PROCESSING, LINK_PROCESSING, DONE = range(4)
 HIDE_KEYBOARD = telegram.ReplyKeyboardRemove()
 CUSTOM_KEYBOARD = telegram.ReplyKeyboardMarkup([['Add Airport', 'Generate Links']], resize_keyboard=True)
-BITLY_TOKEN = 'db26b02e2c8a614f719abb2b93206e1e77a133d0'
-
-SOURCES = {
-    'SITE':"https://clk.tradedoubler.com/click?p=232108&a=2937217&g=21113908&url=http://",
-    'TG':"https://clk.tradedoubler.com/click?p=232108&a=3068494&g=21113908&url=http://",
-    'FB':"https://clk.tradedoubler.com/click?p=232108&a=3068495&g=21113908&url=http://",
-}
 
 
 def restricted(func):
@@ -107,7 +96,7 @@ def done(bot, update, user_data):
             update.message.reply_text(text="Your affiliates links are being generated, please wait...")
             logger.info("Urls for user {} are being generated".format(update.effective_user.id))
             links = user_data['links']
-            skyscanner = SkyScannerInterface(BITLY_TOKEN, SOURCES, links)
+            skyscanner = SkyScannerInterface(os.getenv('BITLY_TOKEN'), links)
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             result = loop.run_until_complete(skyscanner.main())
@@ -116,11 +105,11 @@ def done(bot, update, user_data):
                 answer_to_user+= url + '\n'
             update.message.reply_text(text=answer_to_user)
             user_data.clear()
+            logger.info("Urls for user {} successfully generated".format(update.effective_user.id))
     except:
         logger.info("User {} sent wrong data".format(update.effective_user.id))
         update.message.reply_text(text="You sent wrong data!")
     finally:
-        logger.info("Urls for user {} successfully generated".format(update.effective_user.id))
         return ConversationHandler.END
 
 
@@ -155,7 +144,7 @@ conv_handler = ConversationHandler(
 
 
 if __name__ == "__main__":
-
+    load_dotenv(find_dotenv())
     updater = Updater(token=os.getenv('TELEGRAM_BOT_TOKEN'))
 
     start_command = CommandHandler('start', start)
