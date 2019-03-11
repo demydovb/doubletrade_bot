@@ -14,6 +14,7 @@
 5. Add different markdown for different platform.
 
 **Demo:**
+
 ![Second demo](https://media.giphy.com/media/1fly80FHe75kB9Ae5M/giphy.gif)
 
 If you need to play around/test this bot - just write me and I'll give you bot's username and grant privileges to work with. 
