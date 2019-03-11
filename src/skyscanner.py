@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-import os
+
 import asyncio
-import itertools
 import textwrap
 import aiohttp
-from dotenv import load_dotenv, find_dotenv
 
-from constants import CITY_MAPPING, MONTH_MAPPING, MONTH_MAPPING_INFINITIVE, DELIMITER, SOURCES, EMODJI
+from constants import MONTH_MAPPING, MONTH_MAPPING_INFINITIVE, DELIMITER, SOURCES, EMODJI
+from dao import get_airport_by_iata_code
 
 
 class SkyScannerInterface(object):
@@ -16,6 +15,13 @@ class SkyScannerInterface(object):
         self.urls_to_convert = urls_to_convert
         self.url = True
         self.only_site = only_site
+
+    def detect_city_or_raise_exception(self, iata_code):
+        city = get_airport_by_iata_code(iata_code)
+        if city:
+            return city
+        else:
+            raise KeyError('No such IATA code in our db, please add it manually and retry generate links')
 
     def detect_part_url(self, url, number):
         return url.split(DELIMITER)[number]
@@ -44,20 +50,15 @@ class SkyScannerInterface(object):
             return await response.json()
 
     async def generate_urls(self, source, url):
-        text_to_print = ["\n Links for {} are: \n".format(source), ]
+        generated_links = ["\n Links for {} are: \n".format(source), ]
         for _url in self.urls_to_convert:
             async with aiohttp.ClientSession() as session:
                 shorten_url = await self.short_url(session, url + _url)
                 shorten_url = shorten_url['data']['url']
-            city_from = CITY_MAPPING.get(self.detect_part_url(_url, 3), "Unknown city")
-            city_to = CITY_MAPPING.get(self.detect_part_url(_url, 4), "Unknown city")
-            date_from = self.detect_date(self.detect_part_url(_url, 5))
-            if date_from == None:
-                print('{city_from}-{city_to}. Календар дешевих квитків на {month}  {shorten_url}'.format(
-                    city_from=city_from, city_to=city_to,
-                    date_from=date_from, shorten_url=shorten_url, month=self.detect_month_calendar(_url)))
-                continue
 
+            city_from = self.detect_city_or_raise_exception(self.detect_part_url(_url, 3))
+            city_to = self.detect_city_or_raise_exception(self.detect_part_url(_url, 4))
+            date_from = self.detect_date(self.detect_part_url(_url, 5))
             date_to = self.detect_date(self.detect_part_url(_url, 6))
             if date_from and date_to:
                 text_for_tg_and_site = '{city_from}-{city_to}-{city_from} {date_from}-{date_to}'.format(
@@ -70,13 +71,13 @@ class SkyScannerInterface(object):
                 text = '{} {}'.format(text_for_tg_and_site, shorten_url)
 
             if source == 'SITE':
-                text_to_print.append(
+                generated_links.append(
                     '<p> - {0} <a target="_blank" href="{1}">{1}</a></p>'.format(text_for_tg_and_site, shorten_url))
             elif source == 'FB':
-                text_to_print.append(next(EMODJI) + text)
+                generated_links.append(next(EMODJI) + text)
             else:
-                text_to_print.append('{} <a href="{}">{}</a>'.format(next(EMODJI), shorten_url, text_for_tg_and_site))
-        return text_to_print
+                generated_links.append('{} <a href="{}">{}</a>'.format(next(EMODJI), shorten_url, text_for_tg_and_site))
+        return generated_links
 
     async def main(self):
         tasks = (
@@ -88,23 +89,3 @@ class SkyScannerInterface(object):
             return await asyncio.gather(tasks[0])
         else:
             return await asyncio.gather(*tasks)
-
-
-if __name__ == '__main__':
-    load_dotenv(find_dotenv())
-    URL = True
-    urls_to_convert = []
-    only_site = input('Generate links only for site?')
-    while URL:
-        URL = input('Please, enter url:')[9:]
-        if URL:
-            urls_to_convert.append(URL)
-
-    bitly_token = os.getenv('BITLY_TOKEN')
-    print(bitly_token)
-    skyscanner = SkyScannerInterface(bitly_token, urls_to_convert, only_site)
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(skyscanner.main())
-
-    for url in itertools.chain.from_iterable(result):
-        print(url)

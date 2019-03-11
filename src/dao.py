@@ -1,12 +1,16 @@
+import os
+
 from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, load_only
-# from config import userdb, passdb, dbhost, dbname
+from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
 engine = create_engine(
-    'postgresql://{userdb}:{passdb}@{dbhost}/{dbname}'.format(userdb='demydovb', passdb='demydovb', dbhost='localhost', dbname='doubletrade'),
+    'postgresql://{userdb}:{passdb}@{dbhost}/{dbname}'.format(
+        userdb=os.getenv('USERDB'), passdb=os.getenv('PASSDB'),
+        dbhost=os.getenv('DBHOST'), dbname=os.getenv('DBNAME')
+    ),
     echo=True)
 
 Session = sessionmaker(bind=engine)

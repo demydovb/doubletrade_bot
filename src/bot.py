@@ -1,10 +1,12 @@
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
 import os
 import asyncio
 import telegram
 import re
 import itertools
-
-from dotenv import load_dotenv, find_dotenv
 from functools import wraps
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, RegexHandler
 from telegram.ext.dispatcher import run_async
@@ -13,7 +15,6 @@ from constants import LIST_OF_ADMINS
 from skyscanner import SkyScannerInterface
 from logger import logger
 from dao import add_airport_to_database, get_airport_by_iata_code
-
 
 CHOOSING, AIRPORT_PROCESSING, LINK_PROCESSING, DONE = range(4)
 HIDE_KEYBOARD = telegram.ReplyKeyboardRemove()
@@ -70,7 +71,7 @@ def start_collect_links(bot, update):
 
 def start_add_airport_to_db(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="""Send airport IATA code and city name in next format:\n\n
-    *IATA_CODE:CITY_NAME*""",
+    *IATA_CODE:CITY_NAME*\n\n""",
                      parse_mode=telegram.ParseMode.MARKDOWN,
                      reply_markup=HIDE_KEYBOARD)
     return AIRPORT_PROCESSING
@@ -91,10 +92,8 @@ def add_airport_to_db(bot, update):
     else:
         text_to_replay = "Airport was already in DB!\n\n "
         logger.error('Airport {} is already exists in DB!'.format(iata_code))
-    update.message.reply_text(
-        text_to_replay + "Please, start sending links. Send *end* or *done* when you're ready to get output.",
-        parse_mode=telegram.ParseMode.MARKDOWN)
-    return LINK_PROCESSING
+    update.message.reply_text(text_to_replay, parse_mode=telegram.ParseMode.MARKDOWN, reply_markup=CUSTOM_KEYBOARD)
+    return CHOOSING
 
 
 def done(bot, update, user_data):
@@ -108,17 +107,28 @@ def done(bot, update, user_data):
             skyscanner = SkyScannerInterface(os.getenv('BITLY_TOKEN'), links)
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(skyscanner.main())
+            try:
+                result = loop.run_until_complete(skyscanner.main())
+            except KeyError:
+                print(user_data)
+                user_data.clear()
+                print(user_data)
+                update.message.reply_text(
+                    text="No such IATA code(-s) in our db, please add it manually and retry generate links",
+                    reply_markup=CUSTOM_KEYBOARD)
+                logger.error("User {} sent links with unknown airport(-s)".format(update.effective_user.id))
+                return CHOOSING
             answer_to_user = ''
             for url in itertools.chain.from_iterable(result):
-                answer_to_user+= url + '\n'
+                answer_to_user += url + '\n'
             update.message.reply_text(text=answer_to_user)
             user_data.clear()
             logger.info("Urls for user {} successfully generated".format(update.effective_user.id))
+            return ConversationHandler.END
     except:
         logger.info("User {} sent wrong data".format(update.effective_user.id))
-        update.message.reply_text(text="You sent wrong data!")
-    finally:
+        update.message.reply_text(text="You sent wrong data! Start again.")
+        user_data.clear()
         return ConversationHandler.END
 
 
@@ -142,18 +152,16 @@ conv_handler = ConversationHandler(
                                          ),
                           ],
         AIRPORT_PROCESSING: [
-                             MessageHandler(Filters.text,
-                                            add_airport_to_db,
-                                            ),
-                             ],
+            MessageHandler(Filters.text,
+                           add_airport_to_db,
+                           ),
+        ],
     },
 
     fallbacks=[CommandHandler('done', done, pass_user_data=True)]
 )
 
-
 if __name__ == "__main__":
-    load_dotenv(find_dotenv())
     updater = Updater(token=os.getenv('TELEGRAM_BOT_TOKEN'))
 
     start_command = CommandHandler('start', start)
