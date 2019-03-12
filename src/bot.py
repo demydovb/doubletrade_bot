@@ -109,12 +109,13 @@ def done(bot, update, user_data):
             asyncio.set_event_loop(loop)
             try:
                 result = loop.run_until_complete(skyscanner.main())
-            except KeyError:
+            except KeyError as e:
                 user_data.clear()
                 update.message.reply_text(
-                    text="No such IATA code(-s) in our db, please add it manually and retry generate links",
-                    reply_markup=CUSTOM_KEYBOARD)
-                logger.error("User {} sent links with unknown airport(-s)".format(update.effective_user.id))
+                    text="No *{}* IATA code in our db, please add it manually and retry generate links".format(e.args[1]),
+                    reply_markup=CUSTOM_KEYBOARD,
+                    parse_mode=telegram.ParseMode.MARKDOWN)
+                logger.error("User {} sent links with unknown iata code {}".format(update.effective_user.id, e.args[1]))
                 return CHOOSING
             answer_to_user = ''
             for url in itertools.chain.from_iterable(result):
