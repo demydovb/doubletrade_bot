@@ -1,5 +1,6 @@
 import os
 
+from functools import lru_cache
 from sqlalchemy import Column, String, Integer, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -27,7 +28,7 @@ class Airports(Base):
 Base.metadata.create_all(engine)
 
 
-
+@lru_cache(maxsize=10)
 def get_airport_by_iata_code(iata_code):
     airport = session.query(Airports) \
         .filter(Airports.iata_code == iata_code) \
