@@ -110,9 +110,7 @@ def done(bot, update, user_data):
             try:
                 result = loop.run_until_complete(skyscanner.main())
             except KeyError:
-                print(user_data)
                 user_data.clear()
-                print(user_data)
                 update.message.reply_text(
                     text="No such IATA code(-s) in our db, please add it manually and retry generate links",
                     reply_markup=CUSTOM_KEYBOARD)
