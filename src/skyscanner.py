@@ -21,7 +21,7 @@ class SkyScannerInterface(object):
         if city:
             return city
         else:
-            raise KeyError('No such IATA code in our db, please add it manually and retry generate links')
+            raise KeyError('No such IATA code in our db, please add it manually and retry generate links', iata_code)
 
     def detect_part_url(self, url, number):
         return url.split(DELIMITER)[number]
