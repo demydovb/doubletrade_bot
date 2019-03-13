@@ -123,7 +123,7 @@ def done(bot, update, user_data):
             update.message.reply_text(text=answer_to_user)
             user_data.clear()
             logger.info("Urls for user {} successfully generated".format(update.effective_user.id))
-            return ConversationHandler.END
+        return ConversationHandler.END
     except:
         logger.info("User {} sent wrong data".format(update.effective_user.id))
         update.message.reply_text(text="You sent wrong data! Start again.")
