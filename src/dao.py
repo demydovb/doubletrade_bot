@@ -42,6 +42,7 @@ def add_airport_to_database(iata_code, city_name):
     airport = get_airport_by_iata_code(iata_code)
     if airport:
         return False
+    get_airport_by_iata_code.cache_clear() # We don't need cache results when add airport to db
     session.add(Airports(iata_code=iata_code,city_name=city_name))
     session.commit()
     return True
